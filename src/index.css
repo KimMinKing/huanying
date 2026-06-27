@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --header-h: 4.5rem;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--header-h);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-white font-sans text-ink antialiased;
+    font-feature-settings: 'ss01', 'cv01';
+    letter-spacing: -0.011em;
+  }
+
+  /* 폼 요소 기본 스타일 */
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* selection 컬러 - 레드 톤 */
+  ::selection {
+    @apply bg-brand-100 text-brand-800;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-container px-5 sm:px-6 lg:px-8;
+  }
+
+  /* 섹션 공통 여백 */
+  .section {
+    @apply py-16 sm:py-20 lg:py-28;
+  }
+
+  /* 카드 베이스 */
+  .card-base {
+    @apply rounded-3xl border border-slate-200/70 bg-white shadow-card transition duration-300;
+  }
+
+  /* 버튼 베이스 */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold transition duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 px-6 py-3 text-white hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-600/20 active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn border border-slate-200 bg-white px-6 py-3 text-ink hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn px-4 py-2 text-ink-soft hover:bg-slate-100 hover:text-ink;
+  }
+
+  /* 섹션 헤더 라벨 */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700;
+  }
+
+  /* 헤더 하단 구분선 - 레드→골드 그라데이션 헤어라인 */
+  .header-divider {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(207 51 36 / 0.0) 0%,
+      rgb(207 51 36 / 0.55) 18%,
+      rgb(214 162 63 / 0.8) 50%,
+      rgb(207 51 36 / 0.55) 82%,
+      transparent 100%
+    );
+  }
+
+  /* 정착(중국인) 섹션 전용 따뜻한 배경 - 레드/크림 틴트 */
+  .cn-warm-bg {
+    background:
+      radial-gradient(
+        ellipse 80% 50% at 50% -10%,
+        rgb(207 51 36 / 0.07),
+        transparent 70%
+      ),
+      linear-gradient(to bottom, #fffaf7 0%, #ffffff 60%);
+  }
+
+  /* 블랙 카드 (강조용) */
+  .ink-card {
+    @apply rounded-3xl bg-ink text-white;
+  }
+}
+
+/* 얇은 스크롤바 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid white;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* reduced motion 존중 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
