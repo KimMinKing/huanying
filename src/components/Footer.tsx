@@ -139,7 +139,7 @@ export default function Footer() {
             </ul>
             <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-slate-100 pt-4">
               <li>
-                <Link to="/#reviews" className="text-sm font-medium text-ink-soft transition hover:text-brand-600">
+                <Link to="/reviews" className="text-sm font-medium text-ink-soft transition hover:text-brand-600">
                   고객후기
                 </Link>
               </li>

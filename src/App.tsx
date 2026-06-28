@@ -11,6 +11,7 @@ import ChineseUsersPage from './pages/ChineseUsersPage'
 import ChineseMobilePage from './pages/ChineseMobilePage'
 import SettlementPage from './pages/SettlementPage'
 import ServiceDetailPage from './pages/ServiceDetailPage'
+import ReviewsPage from './pages/ReviewsPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -52,6 +53,7 @@ function PublicLayout() {
           <Route path="/chinese-users/mobile" element={<ChineseMobilePage />} />
           <Route path="/chinese-users/settlement" element={<SettlementPage />} />
           <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/my" element={<MyPage />} />

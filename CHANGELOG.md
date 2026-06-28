@@ -6,6 +6,44 @@
 
 ---
 
+## [0.3.0] — 2026-06-28
+
+### Added — 페이지 독립화/차별화
+
+#### 고객후기 전용 페이지 (`/reviews`)
+- 평점 요약 카드 (평균 / 분포 / 검증 건수)
+- 필터: 한국인/외국인, 서비스 카테고리, 검색
+- 정렬: 최신순 / 평점순
+- 후기 데이터 8건 추가 (총 16건 — 한국 12 + 외국인 4)
+- ReviewCard 컴포넌트 (검증 배지, persona 태그)
+- 페이지 하단 상담 CTA + ConsultationForm
+
+#### 서비스별 차별화 인터랙티브 섹션
+- `components/ServiceInteractiveSection.tsx` — 카테고리별 위젯
+- **인터넷**: 사용 패턴 + 기기 수 기반 속도 추천 (`500Mbps` ~ `2.5Gbps+`)
+- **휴대폰**: 데이터 사용량 계산기 — 정식 통신사 vs 알뜰폰 연간 절약액
+- **렌탈**: 렌탈 vs 구매 총비용 비교기 — 자동 추천
+- **이사**: 평수·유형별 견적 시뮬레이터 (범위 출력)
+- **청소**: 평수 + 옵션 토글 견적표 (보일러/에어컨/베란다/실리콘)
+- 보험은 준비 중이라 생략
+
+### Changed — 네비게이션 UX 개선
+- **Header 드롭다운 메뉴** — "서비스" 호버 시 6개 카테고리 노출
+  - 기존 `/#services` 앵커에서 실제 `/services/:id` 라우트로 연결
+  - 모바일 드로어에서도 2열 그리드로 카테고리 표시
+- **Footer** — "고객후기" 링크를 `/#reviews`에서 `/reviews` 페이지로
+- **sitemap.xml** — `/reviews` URL 추가
+- **navItems 데이터** — `type: 'dropdown'` 추가 (하위 메뉴 지원)
+
+### Files
+- 신규: `src/pages/ReviewsPage.tsx`, `src/components/ServiceInteractiveSection.tsx`
+- 수정: `src/data/reviews.ts` (+8건), `src/data/comparison.ts` (navItems 재구성)
+- 수정: `src/components/Header.tsx` (DropdownMenu 추가), `src/components/Footer.tsx`
+- 수정: `src/pages/ServiceDetailPage.tsx` (인터랙티브 섹션 끼워넣기)
+- 수정: `src/App.tsx` (/reviews 라우트), `public/sitemap.xml`
+
+---
+
 ## [0.2.0] — 2026-06-28
 
 ### Added — 서비스 고도화 (2차 작업)

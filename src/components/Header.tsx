@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Headset, Globe } from 'lucide-react'
-import { navItems, siteConfig } from '../data/comparison'
+import { Menu, X, Headset, Globe, ChevronDown } from 'lucide-react'
+import { navItems, siteConfig, type NavItem } from '../data/comparison'
 import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Header() {
@@ -62,7 +62,16 @@ export default function Header() {
               const active =
                 item.type === 'route'
                   ? location.pathname.startsWith(item.href)
-                  : false
+                  : item.type === 'dropdown'
+                    ? location.pathname.startsWith('/services')
+                    : false
+
+              if (item.type === 'dropdown' && item.children) {
+                return (
+                  <DropdownMenu key={item.id} item={item} active={active} />
+                )
+              }
+
               return (
                 <Link
                   key={item.id}
@@ -128,23 +137,48 @@ export default function Header() {
       >
         <div className="border-b border-slate-200 bg-white shadow-card">
           <nav className="container-page flex flex-col py-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.id}
-                to={item.href}
-                className={[
-                  'flex items-center gap-2 rounded-2xl px-4 py-3 text-base font-semibold transition hover:bg-slate-50',
-                  item.highlight ? 'text-brand-700' : 'text-ink',
-                ].join(' ')}
-              >
-                {item.label}
-                {item.badge && (
-                  <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              if (item.type === 'dropdown' && item.children) {
+                return (
+                  <div key={item.id} className="border-b border-slate-100 pb-2">
+                    <p className="px-4 pt-2 text-xs font-bold uppercase tracking-wider text-ink-muted">
+                      {item.label}
+                    </p>
+                    <div className="mt-1 grid grid-cols-2 gap-1">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.id}
+                          to={child.href}
+                          className="rounded-2xl px-3 py-2.5 transition hover:bg-slate-50"
+                        >
+                          <p className="text-sm font-bold text-ink">{child.label}</p>
+                          {child.description && (
+                            <p className="text-[11px] text-ink-muted">{child.description}</p>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  className={[
+                    'flex items-center gap-2 rounded-2xl px-4 py-3 text-base font-semibold transition hover:bg-slate-50',
+                    item.highlight ? 'text-brand-700' : 'text-ink',
+                  ].join(' ')}
+                >
+                  {item.label}
+                  {item.badge && (
+                    <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
             <Link to="/#consult" className="btn-primary mt-3 w-full">
               무료 상담 신청
             </Link>
@@ -159,5 +193,75 @@ export default function Header() {
         </div>
       </div>
     </header>
+  )
+}
+
+/** 데스크탑 드롭다운 메뉴 — 호버/클릭으로 하위 항목 노출 */
+function DropdownMenu({ item, active }: { item: NavItem; active: boolean }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('mousedown', handler)
+    return () => window.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div
+      className="relative"
+      ref={ref}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={[
+          'flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-semibold transition',
+          active || open
+            ? 'bg-brand-50 text-brand-700'
+            : 'text-ink-soft hover:bg-slate-100 hover:text-ink',
+        ].join(' ')}
+      >
+        {item.label}
+        <ChevronDown
+          className={[
+            'h-3.5 w-3.5 transition-transform',
+            open ? 'rotate-180 text-brand-600' : '',
+          ].join(' ')}
+        />
+      </button>
+
+      {open && item.children && (
+        <div className="absolute left-0 top-full z-50 pt-2">
+          <div className="w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-cardHover">
+            <ul className="p-2">
+              {item.children.map((child) => (
+                <li key={child.id}>
+                  <Link
+                    to={child.href}
+                    onClick={() => setOpen(false)}
+                    className={[
+                      'block rounded-xl px-3 py-2.5 transition hover:bg-brand-50',
+                      location.pathname === child.href ? 'bg-brand-50' : '',
+                    ].join(' ')}
+                  >
+                    <p className="text-sm font-bold text-ink">{child.label}</p>
+                    {child.description && (
+                      <p className="mt-0.5 text-xs text-ink-muted">{child.description}</p>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

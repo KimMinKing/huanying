@@ -16,6 +16,7 @@ import { SectionHeader } from '../components/ServiceCards'
 import ConsultationForm from '../components/ConsultationForm'
 import Breadcrumbs from '../components/Breadcrumbs'
 import NotFoundPage from './NotFoundPage'
+import ServiceInteractiveSection from '../components/ServiceInteractiveSection'
 import SEO, { faqJsonLd } from '../components/SEO'
 
 /**
@@ -150,6 +151,9 @@ export default function ServiceDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* 카테고리별 인터랙티브 섹션 */}
+      <ServiceInteractiveSection serviceId={detail.id} />
 
       {/* Checklist */}
       <section className="section">

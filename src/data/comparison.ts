@@ -98,24 +98,35 @@ export const heroStats = [
 /** 헤더 네비게이션.
  * - type 'anchor': 같은 페이지 내 섹션(#...) — 홈에서만 동작, 다른 페이지에서는 홈으로 이동 후 스크롤.
  * - type 'route' : 라우터 경로(/...).
+ * - type 'dropdown': 하위 메뉴(children)를 가진 드롭다운.
  * - highlight    : 외국인 서비스 등 강조 표시.
  */
 export type NavItem = {
   id: string
   label: string
-  type: 'anchor' | 'route'
+  type: 'anchor' | 'route' | 'dropdown'
   href: string
   highlight?: boolean
   badge?: string
+  children?: { id: string; label: string; href: string; description?: string }[]
 }
 
 export const navItems: NavItem[] = [
-  { id: 'internet', label: '인터넷', type: 'anchor', href: '/#services' },
-  { id: 'mobile', label: '휴대폰', type: 'anchor', href: '/#services' },
-  { id: 'rental', label: '렌탈', type: 'anchor', href: '/#services' },
-  { id: 'move', label: '이사', type: 'anchor', href: '/#services' },
-  { id: 'cleaning', label: '청소', type: 'anchor', href: '/#services' },
-  { id: 'reviews', label: '고객후기', type: 'anchor', href: '/#reviews' },
+  {
+    id: 'services',
+    label: '서비스',
+    type: 'dropdown',
+    href: '/#services',
+    children: [
+      { id: 'internet', label: '인터넷 / IPTV', href: '/services/internet', description: '3사 요금제 비교' },
+      { id: 'mobile', label: '휴대폰 / 알뜰폰', href: '/services/mobile', description: '월정액 30% 절약' },
+      { id: 'rental', label: '가전 렌탈', href: '/services/rental', description: '렌탈 vs 구매 비교' },
+      { id: 'moving', label: '이사', href: '/services/moving', description: '3곳 견적 비교' },
+      { id: 'cleaning', label: '입주 청소', href: '/services/cleaning', description: '평수별 공임' },
+      { id: 'insurance', label: '보험 / 카드', href: '/services/insurance', description: '준비 중' },
+    ],
+  },
+  { id: 'reviews', label: '고객후기', type: 'route', href: '/reviews' },
   {
     id: 'chinese',
     label: '외국인 정착',
