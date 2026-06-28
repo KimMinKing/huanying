@@ -55,7 +55,7 @@ export const chineseServices: ChineseService[] = [
   {
     id: 'internet',
     icon: Wifi,
-    accent: 'cyan',
+    accent: 'gold',
     tag: { ko: '정착 필수', zh: '定居必备' },
     title: { ko: '외국인용 인터넷 설치', zh: '外国人宽带安装' },
     summary: {

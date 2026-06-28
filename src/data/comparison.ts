@@ -145,5 +145,16 @@ export const siteConfig = {
   kakao: {
     label: '카카오톡 상담',
     placeholder: '@라이플',
+    // ⚠️ 실제 채널 URL로 교체 필요 (DATA.md → 메신저 상담 채널 섹션 참고)
+    // 발급: https://biz.kakao.com/ 채널 생성 후 '채널 URL' 복사
+    url: '',
+    handle: '@라이플',
+  },
+  wechat: {
+    label: 'WeChat 상담',
+    // ⚠️ 실제 WeChat ID 입력. 중국어 사용자용.
+    handle: 'lifful_kr',
+    // QR 이미지 URL (png/jpg). 직접 업로드 또는 CDN 링크.
+    qrUrl: '',
   },
 }

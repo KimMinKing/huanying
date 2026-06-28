@@ -1,7 +1,17 @@
 import { Link } from 'react-router-dom'
-import { MessageCircle, Phone, Mail, MapPin, ArrowUpRight, Globe } from 'lucide-react'
+import {
+  MessageCircle,
+  Phone,
+  Mail,
+  MapPin,
+  ArrowUpRight,
+  Globe,
+  ShieldCheck,
+  BadgeCheck,
+} from 'lucide-react'
 import { siteConfig } from '../data/comparison'
 import { services } from '../data/services'
+import { partnerLogos } from '../data/partners'
 
 export default function Footer() {
   return (
@@ -14,7 +24,7 @@ export default function Footer() {
             className="pointer-events-none absolute inset-0 opacity-60"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 15% 20%, rgb(207 51 36 / 0.45), transparent 50%), radial-gradient(circle at 85% 70%, rgb(214 162 63 / 0.25), transparent 50%)',
+                'radial-gradient(circle at 15% 20%, rgb(178 41 26 / 0.45), transparent 50%), radial-gradient(circle at 85% 70%, rgb(214 162 63 / 0.25), transparent 50%)',
             }}
           />
           <div className="relative flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
@@ -45,8 +55,29 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* 파트너사 로고 띠 */}
+      <div className="container-page pt-12">
+        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5">
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-ink-muted">
+            공식 파트너사
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 opacity-60">
+            {partnerLogos.map((p) => (
+              <span
+                key={p.name}
+                title={p.name}
+                className="text-sm font-extrabold tracking-tight text-ink"
+                style={{ fontFamily: 'system-ui, sans-serif' }}
+              >
+                {p.shortName}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* 푸터 본문 */}
-      <div className="container-page pt-16">
+      <div className="container-page pt-12">
         <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr_1.4fr]">
           {/* 브랜드 */}
           <div>
@@ -60,13 +91,26 @@ export default function Footer() {
               {siteConfig.description}. 복잡한 조건은 줄이고, 혜택은 더 선명하게.
             </p>
 
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-mint-50 px-2.5 py-1 text-[11px] font-bold text-mint-700 ring-1 ring-inset ring-mint-200">
+                <ShieldCheck className="h-3 w-3" />
+                개인정보 안심 채널
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-bold text-brand-700 ring-1 ring-inset ring-brand-100">
+                <BadgeCheck className="h-3 w-3" />
+                사업자등록 확인
+              </span>
+            </div>
+
             {/* 카카오톡 상담 */}
             <a
-              href="#footer"
+              href={siteConfig.kakao.url || '#footer'}
+              target={siteConfig.kakao.url ? '_blank' : undefined}
+              rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#FEE500] px-4 py-2.5 text-sm font-bold text-[#191919] shadow-soft transition hover:brightness-95"
             >
               <MessageCircle className="h-4 w-4" />
-              {siteConfig.kakao.label} · {siteConfig.kakao.placeholder}
+              {siteConfig.kakao.label} · {siteConfig.kakao.handle}
             </a>
 
             <Link
@@ -85,7 +129,7 @@ export default function Footer() {
               {services.map((s) => (
                 <li key={s.id}>
                   <Link
-                    to="/#services"
+                    to={`/services/${s.id}`}
                     className="text-sm font-medium text-ink-soft transition hover:text-brand-600"
                   >
                     {s.title}
@@ -112,6 +156,16 @@ export default function Footer() {
               <li>
                 <Link to="/chinese-users/settlement" className="text-sm font-medium text-ink-soft transition hover:text-brand-600">
                   정착 체크리스트
+                </Link>
+              </li>
+              <li>
+                <Link to="/my" className="text-sm font-medium text-ink-soft transition hover:text-brand-600">
+                  마이페이지
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin" className="text-sm font-medium text-ink-muted transition hover:text-brand-600">
+                  관리자
                 </Link>
               </li>
             </ul>
@@ -171,14 +225,19 @@ export default function Footer() {
             © {new Date().getFullYear()} {siteConfig.company.name}. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <a href="#footer" className="text-xs font-semibold text-ink-soft hover:text-brand-600">
-              개인정보처리방침
-            </a>
-            <a href="#footer" className="text-xs font-semibold text-ink-soft hover:text-brand-600">
+            <Link to="/terms" className="text-xs font-semibold text-ink-soft hover:text-brand-600">
               이용약관
-            </a>
-            <a href="#footer" className="text-xs font-semibold text-ink-soft hover:text-brand-600">
-              위치기반서비스 이용약관
+            </Link>
+            <Link to="/privacy" className="text-xs font-semibold text-ink-soft hover:text-brand-600">
+              개인정보처리방침
+            </Link>
+            <a
+              href="https://www.ftc.go.kr/www/bizCommView.do?key=232"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-ink-soft hover:text-brand-600"
+            >
+              사업자 정보 확인
             </a>
           </div>
         </div>

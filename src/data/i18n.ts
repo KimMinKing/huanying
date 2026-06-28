@@ -45,7 +45,7 @@ export function bilingual(ls: LocalString, locale: Locale = 'ko'): {
   return { primary, secondary }
 }
 
-/** 실사용 훅 stub. LocaleContext를 붙이기 전까지는 ko로 동작. */
-export function useLocale(): Locale {
-  return 'ko'
-}
+/**
+ * 실제 다국어 훅은 src/lib/i18n.tsx 에서 제공(useLocale + LocaleProvider).
+ * 이 파일은 순수 데이터/유틸만 남김.
+ */

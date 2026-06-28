@@ -1,0 +1,34 @@
+# 라이플(Lifful) 개발용 PostgreSQL
+# - 호스트 포트 5434 사용 (기존 mevwatch-postgres 5433과 충돌 회피)
+# - 데이터 볼륨: lifful_pgdata
+#
+# 실행:   docker compose up -d
+# 중지:   docker compose down
+# 완전 초기화(데이터 삭제): docker compose down -v
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lifful-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lifful}
+      POSTGRES_USER: ${POSTGRES_USER:-lifful}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lifful_pass}
+      # UTF-8 + C collation (한국어/중국어 정렬 일관성)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - lifful_pgdata:/var/lib/postgresql/data
+      # 최초 초기화 시에만 schema.sql 자동 실행 (볼륨이 비어 있을 때)
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lifful} -d ${POSTGRES_DB:-lifful}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  lifful_pgdata:
+    name: lifful_pgdata

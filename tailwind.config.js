@@ -6,7 +6,7 @@ export default {
   safelist: [
     {
       pattern:
-        /(bg|text|border|ring|shadow)-(brand|mint|cyan|amber|violet|rose|gold)-(50|100|200|300|400|500|600|700|800)/,
+        /(bg|text|border|ring|shadow)-(brand|mint|gold|amber|violet|rose)-(50|100|200|300|400|500|600|700|800)/,
     },
     'group-hover:shadow-brand-600/10',
   ],
@@ -24,20 +24,20 @@ export default {
         ],
       },
       colors: {
-        // 메인 컬러: 중국인 친화적인 진한 홍색(단종/코리안 레드 계열)
-        // 블루에서 레드+블랙 톤으로 전환. 기존 brand-* 클래스가 그대로 적용됨.
+        // 메인 컬러: 딥 레드/와인 톤 (기존보다 약 10% 어둡게, 살짝 더 깊은 붉은색)
+        // scarlet(#cf3324) → wine/crimson 계열로 변경. brand-* 클래스 그대로 적용.
         brand: {
-          50: '#fdf3f2',
-          100: '#fce4e1',
-          200: '#f9cbc5',
-          300: '#f4a59b',
-          400: '#ec7363',
-          500: '#e04a37',
-          600: '#cf3324', // 메인
-          700: '#b02a20',
-          800: '#922820',
-          900: '#7a261f',
-          950: '#410f0b',
+          50: '#fdf4f3',
+          100: '#fae6e2',
+          200: '#f5cdc6',
+          300: '#ee9e92',
+          400: '#de6755',
+          500: '#c8392a',
+          600: '#b2291a', // 메인 (was #cf3324)
+          700: '#931f14',
+          800: '#781a11',
+          900: '#641810',
+          950: '#380c08',
         },
         // 프리미엄 포인트 골드 (중국 정착 섹션 강조, 구분선 등에 소극 사용)
         gold: {
@@ -83,15 +83,15 @@ export default {
         cardHover:
           '0 4px 8px -2px rgb(23 23 23 / 0.09), 0 12px 32px -6px rgb(23 23 23 / 0.13)',
         soft: '0 2px 8px -2px rgb(23 23 23 / 0.06)',
-        ring: '0 0 0 4px rgb(207 51 36 / 0.14)',
-        redGlow: '0 8px 30px -6px rgb(207 51 36 / 0.35)',
+        ring: '0 0 0 4px rgb(178 41 26 / 0.14)',
+        redGlow: '0 8px 30px -6px rgb(178 41 26 / 0.35)',
       },
       maxWidth: {
         container: '1200px',
       },
       backgroundImage: {
         'header-stripe':
-          'linear-gradient(90deg, #cf3324 0%, #d6a23f 50%, #cf3324 100%)',
+          'linear-gradient(90deg, #b2291a 0%, #d6a23f 50%, #b2291a 100%)',
       },
       keyframes: {
         'fade-up': {

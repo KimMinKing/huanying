@@ -11,6 +11,14 @@ dist
 dist-ssr
 *.local
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# 환경 변수 (백엔드 도입 전이라도 .env는 커밋 금지)
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

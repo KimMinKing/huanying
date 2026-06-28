@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ArrowUpRight, Check } from 'lucide-react'
 import { services } from '../data/services'
 import { accents } from '../lib/accents'
@@ -23,8 +24,9 @@ export default function ServiceCards() {
             const Icon = service.icon
             const a = accents[service.accent]
             return (
-              <article
+              <Link
                 key={service.id}
+                to={`/services/${service.id}`}
                 className="group relative flex flex-col rounded-3xl border border-slate-200/80 bg-white p-6 shadow-card transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-cardHover"
               >
                 {/* 상단: 아이콘 + 태그 */}
@@ -72,14 +74,13 @@ export default function ServiceCards() {
                 </ul>
 
                 {/* 하단 링크 */}
-                <a
-                  href="#consult"
+                <span
                   className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-ink transition group-hover:text-brand-600"
                 >
-                  상담 신청하기
+                  자세히 보기 · 상담 신청
                   <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </a>
-              </article>
+                </span>
+              </Link>
             )
           })}
         </div>

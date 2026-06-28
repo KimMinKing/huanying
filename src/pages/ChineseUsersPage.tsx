@@ -29,7 +29,7 @@ export default function ChineseUsersPage() {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 1px 1px, rgb(207 51 36 / 0.10) 1px, transparent 0)',
+              'radial-gradient(circle at 1px 1px, rgb(178 41 26 / 0.10) 1px, transparent 0)',
             backgroundSize: '28px 28px',
             maskImage: 'linear-gradient(to bottom, black 0%, transparent 75%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 0%, transparent 75%)',

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /my
+
+# 관리자 페이지와 고객 개인 페이지는 색인 제외
+
+Sitemap: https://lifful.example/sitemap.xml

@@ -17,7 +17,7 @@ import {
  * 나중에 "외국인 전용 요금제" 같은 카테고리를 추가할 때도
  * 이 배열에 항목만 추가하면 자동으로 UI에 반영됩니다.
  */
-export type ServiceAccent = 'brand' | 'mint' | 'amber' | 'violet' | 'rose' | 'cyan'
+export type ServiceAccent = 'brand' | 'mint' | 'amber' | 'violet' | 'rose' | 'gold'
 
 export interface ServiceItem {
   id: string
@@ -49,7 +49,7 @@ export const services: ServiceItem[] = [
     description:
       '통신사 요금제와 알뜰폰 요금제를 데이터 사용량 기준으로 비교. 가족 결합과 약정 조건까지 고려해 드려요.',
     icon: Smartphone,
-    accent: 'cyan',
+    accent: 'gold',
     tag: '절약 BEST',
     features: ['무제한 / 쉐어링 비교', '알뜰폰 절약 시뮬레이션', '가족 결합 할인'],
   },

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, Headset, Globe } from 'lucide-react'
 import { navItems, siteConfig } from '../data/comparison'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Header() {
   const [open, setOpen] = useState(false)
@@ -87,6 +88,7 @@ export default function Header() {
 
           {/* 우측 CTA */}
           <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="compact" />
             <Link
               to="/chinese-users"
               className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-ink-soft transition hover:border-brand-200 hover:text-brand-700 lg:inline-flex"

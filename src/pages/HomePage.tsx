@@ -5,6 +5,7 @@ import ComparisonExample from '../components/ComparisonExample'
 import ForeignerEntry from '../components/ForeignerEntry'
 import Reviews from '../components/Reviews'
 import ConsultationForm from '../components/ConsultationForm'
+import SEO, { localBusinessJsonLd } from '../components/SEO'
 
 /**
  * 메인 랜딩 페이지.
@@ -14,6 +15,12 @@ import ConsultationForm from '../components/ConsultationForm'
 export default function HomePage() {
   return (
     <>
+      <SEO
+        title="라이플"
+        description="인터넷, 휴대폰, 렌탈, 이사, 청소까지. 한 곳에서 비교하고 나에게 맞는 혜택을 찾아보세요. 외국인 정착 패키지·AI 맞춤 추천 제공."
+        path="/"
+        jsonLd={localBusinessJsonLd()}
+      />
       <Hero />
       <ServiceCards />
       <WhyUs />

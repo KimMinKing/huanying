@@ -31,13 +31,13 @@ export const accents: Record<ServiceAccent, AccentTokens> = {
     glow: 'group-hover:shadow-mint-500/10',
     dot: 'bg-mint-500',
   },
-  cyan: {
-    iconWrap: 'bg-cyan-100 text-cyan-700',
-    softBg: 'bg-cyan-50',
-    softText: 'text-cyan-700',
-    border: 'border-cyan-100',
-    glow: 'group-hover:shadow-cyan-500/10',
-    dot: 'bg-cyan-500',
+  gold: {
+    iconWrap: 'bg-gold-100 text-gold-700',
+    softBg: 'bg-gold-50',
+    softText: 'text-gold-700',
+    border: 'border-gold-100',
+    glow: 'group-hover:shadow-gold-500/10',
+    dot: 'bg-gold-500',
   },
   amber: {
     iconWrap: 'bg-amber-100 text-amber-700',

@@ -73,10 +73,10 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgb(207 51 36 / 0.0) 0%,
-      rgb(207 51 36 / 0.55) 18%,
+      rgb(178 41 26 / 0.0) 0%,
+      rgb(178 41 26 / 0.55) 18%,
       rgb(214 162 63 / 0.8) 50%,
-      rgb(207 51 36 / 0.55) 82%,
+      rgb(178 41 26 / 0.55) 82%,
       transparent 100%
     );
   }
@@ -86,7 +86,7 @@
     background:
       radial-gradient(
         ellipse 80% 50% at 50% -10%,
-        rgb(207 51 36 / 0.07),
+        rgb(178 41 26 / 0.07),
         transparent 70%
       ),
       linear-gradient(to bottom, #fffaf7 0%, #ffffff 60%);

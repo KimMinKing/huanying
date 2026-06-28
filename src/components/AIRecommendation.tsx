@@ -1,5 +1,15 @@
-import { useMemo, useState } from 'react'
-import { Sparkles, Wand2, Smartphone, Wifi, PackageCheck, RefreshCw, Check } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Sparkles,
+  Wand2,
+  Smartphone,
+  Wifi,
+  PackageCheck,
+  RefreshCw,
+  Check,
+  Loader2,
+  Cpu,
+} from 'lucide-react'
 import { SectionHeader } from './ServiceCards'
 
 /**
@@ -108,6 +118,8 @@ export default function AIRecommendation() {
     budget: '',
   })
   const [result, setResult] = useState<Recommendation | null>(null)
+  // 'idle' | 'analyzing' | 'done' — AI 추천 진행 단계
+  const [phase, setPhase] = useState<'idle' | 'analyzing' | 'done'>('idle')
 
   const ready = useMemo(
     () => inputs.duration && inputs.visa && inputs.region && inputs.budget,
@@ -115,12 +127,19 @@ export default function AIRecommendation() {
   )
 
   const submit = () => {
-    if (!ready) return
-    setResult(recommend(inputs as Required<Inputs>))
+    if (!ready || phase === 'analyzing') return
+    setPhase('analyzing')
+    // 실제 AI 서버 연동 전이라 클라이언트 규칙 엔진으로 결과 생성.
+    // 1.4초 지연은 "AI가 분석 중"인 UX를 연출하기 위한 것.
+    window.setTimeout(() => {
+      setResult(recommend(inputs as Required<Inputs>))
+      setPhase('done')
+    }, 1400)
   }
   const reset = () => {
     setInputs({ duration: '', visa: '', region: '', budget: '' })
     setResult(null)
+    setPhase('idle')
   }
 
   return (
@@ -140,8 +159,12 @@ export default function AIRecommendation() {
 
         <div className="mx-auto mt-10 max-w-3xl">
           <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-cardHover sm:p-8">
-            {!result ? (
+            {phase === 'idle' && (
               <>
+                <div className="mb-5 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-50 to-gold-50 px-4 py-2.5 text-xs font-semibold text-brand-700">
+                  <Cpu className="h-3.5 w-3.5" />
+                  AI 추천 엔진 v0.1 (데모) · 입력값을 기반으로 최적의 조합을 생성합니다
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Select
                     label="체류 기간"
@@ -175,7 +198,7 @@ export default function AIRecommendation() {
                   className="btn-primary mt-6 w-full text-base"
                 >
                   <Wand2 className="h-4 w-4" />
-                  맞춤 추천받기
+                  AI 맞춤 추천받기
                 </button>
                 {!ready && (
                   <p className="mt-2 text-center text-xs text-ink-muted">
@@ -183,13 +206,96 @@ export default function AIRecommendation() {
                   </p>
                 )}
               </>
-            ) : (
+            )}
+
+            {phase === 'analyzing' && <AnalyzingCard inputs={inputs as Required<Inputs>} />}
+
+            {phase === 'done' && result && (
               <ResultCard r={result} onReset={reset} />
             )}
           </div>
         </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * AI 분석 중 상태 카드.
+ * 4단계 메시지가 350ms 간격으로 전환되며 "AI가 생각하는 중" 느낌을 연출.
+ * 실제 AI 서버 도입 시 이 컴포넌트는 자연스럽게 호환됨 (지연만 서버 응답 시간으로 교체).
+ */
+function AnalyzingCard({ inputs }: { inputs: Required<Inputs> }) {
+  const steps = [
+    { label: '체류 조건 분석 중…', detail: `${inputs.visa} 비자 · ${inputs.duration} 체류` },
+    { label: '통신사 요금제 매칭 중…', detail: '휴대폰 · 인터넷 조합 탐색' },
+    { label: '예산 최적화 계산 중…', detail: `${inputs.budget} 예산 기준` },
+    { label: '추천 결과 생성 중…', detail: '거의 다 됐어요' },
+  ]
+  const [stepIdx, setStepIdx] = useState(0)
+
+  useEffect(() => {
+    if (stepIdx >= steps.length - 1) return
+    const t = window.setTimeout(() => setStepIdx((i) => i + 1), 340)
+    return () => window.clearTimeout(t)
+  }, [stepIdx, steps.length])
+
+  return (
+    <div className="animate-fade-up py-6">
+      <div className="flex items-center gap-3">
+        <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">
+          <span className="absolute inset-0 animate-ping rounded-2xl bg-brand-600 opacity-20" />
+          <Sparkles className="relative h-6 w-6" />
+        </span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-brand-700">
+            AI 추천 엔진 작동 중
+          </p>
+          <p className="text-lg font-extrabold tracking-tight text-ink">
+            잠시만 기다려주세요
+          </p>
+        </div>
+      </div>
+
+      {/* 진행 바 */}
+      <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-brand-600 to-gold-500 transition-all duration-300"
+          style={{ width: `${((stepIdx + 1) / steps.length) * 100}%` }}
+        />
+      </div>
+
+      {/* 단계 메시지 */}
+      <ul className="mt-5 space-y-2.5">
+        {steps.map((s, i) => {
+          const done = i < stepIdx
+          const active = i === stepIdx
+          return (
+            <li
+              key={s.label}
+              className={[
+                'flex items-center gap-3 rounded-2xl px-4 py-3 transition',
+                active
+                  ? 'bg-brand-50 text-brand-800'
+                  : done
+                    ? 'text-ink-muted'
+                    : 'text-ink-light opacity-60',
+              ].join(' ')}
+            >
+              {done ? (
+                <Check className="h-4 w-4 shrink-0 text-mint-600" />
+              ) : active ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-600" />
+              ) : (
+                <span className="h-4 w-4 shrink-0 rounded-full border-2 border-current" />
+              )}
+              <span className="flex-1 text-sm font-semibold">{s.label}</span>
+              <span className="text-xs text-ink-muted">{s.detail}</span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }
 
@@ -228,29 +334,48 @@ function Select({
 function ResultCard({ r, onReset }: { r: Recommendation; onReset: () => void }) {
   return (
     <div className="animate-fade-up">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
-          <Sparkles className="h-5 w-5" />
-        </span>
-        <div>
-          <p className="text-sm font-bold text-brand-700">추천 결과</p>
-          <p className="text-lg font-extrabold tracking-tight text-ink">
-            회원님을 위한 조합을 정리했어요
-          </p>
+      {/* 상단: AI 뱃지 */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-redGlow">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-700">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-mint-500" />
+              AI 추천 완료
+            </p>
+            <p className="text-lg font-extrabold tracking-tight text-ink">
+              회원님을 위한 조합을 정리했어요
+            </p>
+          </div>
         </div>
+        <span className="hidden rounded-full border border-gold-200 bg-gold-50 px-3 py-1 text-[11px] font-bold text-gold-700 sm:inline-block">
+          AI 생성 결과
+        </span>
       </div>
 
       {/* 예상 비용 */}
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3 rounded-3xl bg-ink px-5 py-4 text-white">
-        <div>
-          <p className="text-xs font-semibold text-slate-300">예상 월 생활통신비</p>
-          <p className="text-2xl font-black tracking-tight">
-            {r.monthlyMin.toLocaleString()} ~ {r.monthlyMax.toLocaleString()}원
-          </p>
+      <div className="relative mt-5 overflow-hidden rounded-3xl bg-ink px-5 py-4 text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            background:
+              'radial-gradient(circle at 15% 20%, rgb(178 41 26 / 0.5), transparent 55%), radial-gradient(circle at 85% 80%, rgb(214 162 63 / 0.3), transparent 55%)',
+          }}
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-slate-300">예상 월 생활통신비</p>
+            <p className="text-2xl font-black tracking-tight">
+              {r.monthlyMin.toLocaleString()} ~ {r.monthlyMax.toLocaleString()}원
+            </p>
+          </div>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gold-300">
+            절약형 조합
+          </span>
         </div>
-        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gold-300">
-          절약형 조합
-        </span>
       </div>
 
       {/* 추천 항목 */}
@@ -272,6 +397,12 @@ function ResultCard({ r, onReset }: { r: Recommendation; onReset: () => void }) 
           ))}
         </ul>
       </div>
+
+      {/* 안내 문구 */}
+      <p className="mt-4 rounded-2xl border border-gold-100 bg-gold-50/60 px-4 py-2.5 text-xs leading-relaxed text-gold-800">
+        ※ 이 견적은 AI가 입력값을 기반으로 생성한 <strong>참고용</strong>입니다. 정확한 요금·약정
+        조건은 실제 상담을 통해 확정됩니다. (현재는 규칙 기반 데모)
+      </p>
 
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
         <a href="/#consult" className="btn-primary flex-1">
