@@ -12,19 +12,37 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- ============================================================================
 -- 사용자(고객)
 -- ============================================================================
+-- password_hash: 백엔드 도입 전이라도 고객이 직접 회원가입/로그인 가능하도록.
+--                consultation 전용(비회원) 신청자는 password_hash가 NULL.
+-- residence_status / visa_type: 외국인 정착 서비스 핵심 분류.
+-- preferred_channel: kakao / wechat / phone / email
 CREATE TABLE IF NOT EXISTS users (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name         TEXT NOT NULL,
-  phone        TEXT,
-  email        TEXT,
-  nationality  TEXT,        -- 'kr', 'cn', 'us' ... (필요시 enum으로)
-  language     TEXT DEFAULT 'ko',  -- 'ko' | 'zh' | 'en'
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name               TEXT NOT NULL,
+  phone              TEXT,
+  email              TEXT,
+  password_hash      TEXT,                                -- bcrypt (고객 계정용)
+  nationality        TEXT,                                -- 'kr', 'cn', 'us' ...
+  language           TEXT DEFAULT 'ko',                   -- 'ko' | 'zh' | 'en'
+  residence_status   TEXT
+    CHECK (residence_status IN ('citizen', 'long_term', 'short_term', 'tourist')),
+  visa_type          TEXT,                                -- D-2, D-4, D-8, C-3 ...
+  preferred_channel  TEXT,                                -- kakao / wechat / phone / email
+  marketing_consent  BOOLEAN NOT NULL DEFAULT FALSE,
+  is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+  last_login_at      TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users (phone);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique
+  ON users (email)
+  WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique
+  ON users (phone)
+  WHERE phone IS NOT NULL;
 
 -- ============================================================================
 -- 직원(상담 매니저 + 관리자)
@@ -131,6 +149,10 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS set_updated_at ON consultations;
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON consultations
+  FOR EACH ROW EXECUTE FUNCTION trg_set_updated_at();
+
+DROP TRIGGER IF EXISTS set_updated_at_users ON users;
+CREATE TRIGGER set_updated_at_users BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION trg_set_updated_at();
 
 -- ============================================================================

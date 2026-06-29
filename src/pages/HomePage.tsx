@@ -3,6 +3,7 @@ import ServiceCards from '../components/ServiceCards'
 import WhyUs from '../components/WhyUs'
 import ComparisonExample from '../components/ComparisonExample'
 import ForeignerEntry from '../components/ForeignerEntry'
+import GuideHighlights from '../components/GuideHighlights'
 import Reviews from '../components/Reviews'
 import ConsultationForm from '../components/ConsultationForm'
 import SEO, { localBusinessJsonLd } from '../components/SEO'
@@ -26,6 +27,7 @@ export default function HomePage() {
       <WhyUs />
       <ComparisonExample />
       <ForeignerEntry />
+      <GuideHighlights />
       <Reviews />
       <ConsultationForm />
     </>

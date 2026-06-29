@@ -128,6 +128,18 @@ export const navItems: NavItem[] = [
   },
   { id: 'reviews', label: '고객후기', type: 'route', href: '/reviews' },
   {
+    id: 'guides',
+    label: '가이드',
+    type: 'dropdown',
+    href: '/case-studies',
+    children: [
+      { id: 'case-studies', label: '실제 진행 사례', href: '/case-studies', description: '반복되는 케이스 정리' },
+      { id: 'documents', label: '준비 서류 체크리스트', href: '/foreigner-documents', description: '외국인/유학생 준비물' },
+      { id: 'support-hours', label: '상담 가능 시간', href: '/support-hours', description: '채널별 운영 시간' },
+      { id: 'pricing-guide', label: '요금 비교 기준', href: '/pricing-guide', description: '총비용 기준 설명' },
+    ],
+  },
+  {
     id: 'chinese',
     label: '외국인 정착',
     type: 'route',

@@ -6,6 +6,72 @@
 
 ---
 
+## [0.4.0] — 2026-06-29
+
+### Added — 고객 계정 시스템 + 가이드 허브
+
+#### 고객 인증 라우트 컴포넌트
+- `components/AuthRoutes.tsx` — `RequireCustomerAuth`, `RedirectCustomerAuth`, `RequireAdminAuth`, `RedirectAdminAuth`
+  - `<Outlet/>` 기반 라우트 가드. 미인증 시 로그인으로 리다이렉트
+  - `App.tsx` 전체 라우팅 구조를 중첩 Route로 재작성
+
+#### Mock 저장소 추상화
+- `lib/mockStorage.ts` — `loadCollection`, `saveCollection`, `readSession`, `writeSession`, `clearSession`, `wait`
+- `adminAuth.ts`, `customerAuth.ts` 가 이 모듈을 사용하도록 리팩터링
+  - 중복 코드 제거, 일관된 에러 처리
+
+#### users 테이블 확장 (고객 인증 지원)
+- 마이그레이션: `db/migrations/001_users_auth_extension.sql`
+- 추가 컬럼: `password_hash`, `preferred_channel`, `residence_status` (CHECK 제약), `visa_type`, `marketing_consent`, `is_active`, `last_login_at`, `updated_at`
+- email/phone UNIQUE 인덱스 (고객 로그인 식별자)
+- `set_updated_at_users` 트리거 추가
+- `schema.sql`에도 동기화 (신규 설치 시 자동 적용)
+
+#### 회원가입 다단계 폼 (RegisterPage 재설계)
+- 4단계: 계정 → 프로필 → 체류 정보 → 연락·동의
+- 단계별 진행 바 (완료/현재/미래 시각화)
+- 국적 선택(한국/중국/기타)에 따른 조건부 필드:
+  - 한국인 → citizen 자동 설정
+  - 외국인 → 체류 상태(장기/단기/관광) + 비자 종류(D-2/D-4/D-8/F-계열 등 optgroup)
+  - 관광은 비자 면제
+- 선호 채널: 카카오톡/WeChat/전화/이메일 (브랜드 색 버튼)
+- 동의 3종: 이용약관(필수), 개인정보(필수), 마케팅(선택)
+- 단계별 검증 + 이전 단계로 이동 가능
+
+#### 로그인 페이지 소셜 UI
+- Kakao/Naver/WeChat 소셜 로그인 버튼 (현재 disabled, 백엔드 연동 후 활성화)
+- "OR" 구분선
+
+#### 마이페이지 확장 프로필
+- 국적, 체류 상태, 선호 채널, 언어, 비자, 마케팅 동의, 가입일, 계정 상태
+- 4열 그리드 ProfileItem 컴포넌트
+
+#### 가이드 허브 (4개 신규 페이지)
+- `pages/CaseStudiesPage.tsx` — 실제 진행 사례 (유학생/직장인/투자자 케이스)
+- `pages/ForeignerDocumentsPage.tsx` — 외국인 필수 서류 체크리스트
+- `pages/PricingGuidePage.tsx` — 요금 비교 기준 (총비용 기준 설명)
+- `pages/SupportHoursPage.tsx` — 채널별 상담 가능 시간
+- `data/guides.ts` — 가이드용 데이터
+- `components/GuideHighlights.tsx` — 홈에 들어갈 가이드 하이라이트 섹션
+- Header "가이드" 드롭다운 메뉴 추가
+
+### Changed
+- `App.tsx` — `<Outlet/>` 기반 중첩 라우트 구조로 재작성
+- `lib/adminAuth.ts`, `lib/customerAuth.ts` — mockStorage 사용
+- 데모 고객 2명 (한국인 김데모 + 중국인 Zhang Wen) — 국적별 마이페이지 화면 테스트용
+
+### Files
+- 신규: `src/components/AuthRoutes.tsx`, `src/lib/mockStorage.ts`, `src/components/GuideHighlights.tsx`, `src/data/guides.ts`
+- 신규: `src/pages/{CaseStudiesPage,ForeignerDocumentsPage,PricingGuidePage,SupportHoursPage}.tsx`
+- 신규: `db/migrations/001_users_auth_extension.sql`
+- 수정: `src/App.tsx`, `src/components/Header.tsx`, `src/data/comparison.ts`
+- 수정: `src/lib/adminAuth.ts`, `src/lib/customerAuth.ts`
+- 수정: `src/pages/customer/{LoginPage,RegisterPage,MyPage}.tsx`
+- 수정: `src/pages/admin/AdminLayout.tsx`, `src/pages/HomePage.tsx`, `src/components/FAQ.tsx`
+- 수정: `db/schema.sql`, `README.md`
+
+---
+
 ## [0.3.0] — 2026-06-28
 
 ### Added — 페이지 독립화/차별화

@@ -1,5 +1,14 @@
-import { useState, useMemo } from 'react'
-import { Calculator, Zap, AlertCircle, TrendingDown, ArrowRight } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Calculator, Zap, AlertCircle, TrendingDown, ArrowRight, Loader2, X } from 'lucide-react'
+import { getSession, login } from '../lib/customerAuth'
+import {
+  estimateMobilePrice,
+  getMobilePricingSettings,
+  type MobileCarrierId,
+  type MobileDataUsage,
+  type MobileExtraOption,
+  type MobilePlanType,
+} from '../lib/mobilePlans'
 
 /**
  * 서비스 카테고리별 인터랙티브 섹션.
@@ -123,15 +132,35 @@ function InternetSpeedFinder() {
 function MobileDataCalculator() {
   const [gb, setGb] = useState(10)
   const [calls, setCalls] = useState<'light' | 'normal' | 'heavy'>('normal')
+  const [pricingSettings, setPricingSettings] = useState(getMobilePricingSettings())
+
+  useEffect(() => {
+    const syncPricing = () => setPricingSettings(getMobilePricingSettings())
+    window.addEventListener('lifful-mobile-pricing-changed', syncPricing)
+    return () => window.removeEventListener('lifful-mobile-pricing-changed', syncPricing)
+  }, [])
 
   const result = useMemo(() => {
-    // 정식 통신사 vs 알뜰폰 비교 — 샘플 요금
-    const majorPlan = gb <= 5 ? 55000 : gb <= 30 ? 65000 : 80000
-    const budgetPlan = Math.max(11900, Math.min(33000, gb * 1500 + (calls === 'heavy' ? 8000 : 3000)))
+    const activeCarrier = pricingSettings.carriers.find((carrier) => carrier.isActive)
+    const carrier = activeCarrier?.id ?? 'skt'
+    const dataUsage = gb <= 5 ? 'light' : gb <= 30 ? 'standard' : 'heavy'
+    const extraOption = calls === 'heavy' ? 'esim' : 'none'
+    const majorPlan = estimateMobilePrice(pricingSettings, {
+      carrier,
+      planType: 'major',
+      dataUsage,
+      extraOption,
+    }).monthly
+    const budgetPlan = estimateMobilePrice(pricingSettings, {
+      carrier,
+      planType: 'budget',
+      dataUsage,
+      extraOption,
+    }).monthly
     const monthlySaving = majorPlan - budgetPlan
     const yearlySaving = monthlySaving * 12
     return { majorPlan, budgetPlan, monthlySaving, yearlySaving }
-  }, [gb, calls])
+  }, [calls, gb, pricingSettings])
 
   return (
     <InteractiveSection
@@ -218,7 +247,151 @@ function MobileDataCalculator() {
         <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
         위 수치는 샘플 요금 기준 추정치이며, 실제 요금제·약정에 따라 달라집니다.
       </p>
+      <MobilePlanStarter />
     </InteractiveSection>
+  )
+}
+
+function MobilePlanStarter() {
+  const [session, setSession] = useState(getSession())
+  const [pricingSettings, setPricingSettings] = useState(getMobilePricingSettings())
+  const [carrier, setCarrier] = useState<MobileCarrierId>('skt')
+  const [planType, setPlanType] = useState<MobilePlanType>('budget')
+  const [dataUsage, setDataUsage] = useState<MobileDataUsage>('standard')
+  const [extraOption, setExtraOption] = useState<MobileExtraOption>('none')
+  const [applied, setApplied] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
+
+  useEffect(() => {
+    const syncSession = () => setSession(getSession())
+    window.addEventListener('lifful-auth-changed', syncSession)
+    return () => window.removeEventListener('lifful-auth-changed', syncSession)
+  }, [])
+
+  useEffect(() => {
+    const syncPricing = () => setPricingSettings(getMobilePricingSettings())
+    window.addEventListener('lifful-mobile-pricing-changed', syncPricing)
+    return () => window.removeEventListener('lifful-mobile-pricing-changed', syncPricing)
+  }, [])
+
+  const estimate = useMemo(() => {
+    return estimateMobilePrice(pricingSettings, {
+      carrier,
+      planType,
+      dataUsage,
+      extraOption,
+    })
+  }, [carrier, dataUsage, extraOption, planType, pricingSettings])
+
+  const handleApply = () => {
+    if (!session) {
+      setLoginOpen(true)
+      return
+    }
+
+    setApplied(true)
+  }
+
+  return (
+    <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-brand-700">Quick Start</p>
+          <h3 className="mt-1 text-xl font-extrabold tracking-tight text-ink">
+            휴대폰 신청 조건 먼저 고르기
+          </h3>
+          <p className="mt-2 text-sm text-ink-soft">
+            통신사와 사용 패턴을 먼저 선택하면 대략적인 월 요금 기준을 바로 볼 수 있습니다.
+          </p>
+        </div>
+        <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
+          신청 전 선택
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <OptionGroup
+          title="1. 통신사"
+          value={carrier}
+          onChange={(value) => setCarrier(value as typeof carrier)}
+          options={pricingSettings.carriers
+            .filter((item) => item.isActive)
+            .map((item) => ({ value: item.id, label: item.name }))}
+        />
+        <OptionGroup
+          title="2. 요금 성향"
+          value={planType}
+          onChange={(value) => setPlanType(value as typeof planType)}
+          options={[
+            { value: 'budget', label: '알뜰하게' },
+            { value: 'major', label: '정식 통신사 중심' },
+          ]}
+        />
+        <OptionGroup
+          title="3. 데이터 사용량"
+          value={dataUsage}
+          onChange={(value) => setDataUsage(value as typeof dataUsage)}
+          options={[
+            { value: 'light', label: '가볍게' },
+            { value: 'standard', label: '보통' },
+            { value: 'heavy', label: '많이 씀' },
+          ]}
+        />
+        <OptionGroup
+          title="4. 추가 조건"
+          value={extraOption}
+          onChange={(value) => setExtraOption(value as typeof extraOption)}
+          options={[
+            { value: 'none', label: '없음' },
+            { value: 'family', label: '가족 결합 가능' },
+            { value: 'esim', label: 'eSIM 필요' },
+          ]}
+        />
+      </div>
+
+      <div className="mt-6 rounded-2xl bg-gradient-to-br from-gold-50 to-brand-50 p-5">
+        <p className="text-xs font-bold uppercase tracking-wider text-brand-700">예상 기준</p>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ink-soft">{estimate.carrierName}</p>
+            <p className="text-3xl font-black tracking-tight text-ink">
+              월 {estimate.monthly.toLocaleString()}원대
+            </p>
+          </div>
+          <p className="text-xs text-ink-muted">
+            실제 신청 저장 기능은 아직 없고, 현재는 버튼 반응만 연결되어 있습니다.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-ink-muted">
+          {session
+            ? '로그인 상태입니다. 지금은 신청 버튼 동작만 확인할 수 있습니다.'
+            : '신청하려면 로그인해야 합니다.'}
+        </p>
+        <button type="button" onClick={handleApply} className="btn-primary text-sm">
+          {session ? '신청 버튼 눌러보기' : '로그인 후 신청'}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {applied && (
+        <div className="mt-4 rounded-2xl border border-mint-200 bg-mint-50 px-4 py-3 text-sm font-medium text-mint-800">
+          버튼 동작만 연결된 상태입니다. 실제 신청 저장 기능은 아직 구현하지 않았습니다.
+        </div>
+      )}
+
+      {loginOpen && (
+        <QuickLoginModal
+          onClose={() => setLoginOpen(false)}
+          onSuccess={() => {
+            setSession(getSession())
+            setLoginOpen(false)
+          }}
+        />
+      )}
+    </div>
   )
 }
 
@@ -591,6 +764,160 @@ function InteractiveSection({
         </div>
       </div>
     </section>
+  )
+}
+
+function OptionGroup({
+  title,
+  value,
+  onChange,
+  options,
+}: {
+  title: string
+  value: string
+  onChange: (value: string) => void
+  options: { value: string; label: string }[]
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-bold text-ink">{title}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={[
+              'rounded-2xl border-2 px-3 py-3 text-sm font-bold transition',
+              value === option.value
+                ? 'border-brand-500 bg-brand-50 text-brand-800'
+                : 'border-slate-200 text-ink-soft hover:border-slate-300',
+            ].join(' ')}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function QuickLoginModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [email, setEmail] = useState('demo@lifful.com')
+  const [password, setPassword] = useState('demo123')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (loading) return
+
+    setError(null)
+    setLoading(true)
+
+    try {
+      await login(email, password)
+      onSuccess()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/45 px-4">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-cardHover sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-brand-700">
+              Login Required
+            </p>
+            <h3 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">
+              신청 전에 로그인해 주세요
+            </h3>
+            <p className="mt-2 text-sm text-ink-soft">
+              지금 화면을 벗어나지 않고 바로 로그인할 수 있습니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-ink-soft transition hover:border-slate-300 hover:text-ink"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="quick-login-email" className="mb-1.5 block text-sm font-bold text-ink">
+              이메일
+            </label>
+            <input
+              id="quick-login-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-ink transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="quick-login-password"
+              className="mb-1.5 block text-sm font-bold text-ink"
+            >
+              비밀번호
+            </label>
+            <input
+              id="quick-login-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-ink transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">
+              {error}
+            </div>
+          )}
+
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-ink-soft">
+            데모 계정: <span className="font-bold text-ink">demo@lifful.com / demo123</span>
+          </div>
+
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 text-sm">
+              닫기
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary flex-1 text-sm">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  로그인 중
+                </>
+              ) : (
+                '로그인'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
 

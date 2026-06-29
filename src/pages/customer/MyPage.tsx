@@ -1,245 +1,550 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  Inbox,
   Loader2,
   LogOut,
-  UserCircle,
-  Inbox,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  Sparkles,
+  MapPin,
+  MessageSquareMore,
+  Phone,
+  Settings,
+  UserCircle2,
+  type LucideIcon,
 } from 'lucide-react'
+import SEO from '../../components/SEO'
 import {
+  getMyConsultations,
+  getMyReservations,
   getSession,
   logout,
-  getMyConsultations,
-  type CustomerUser,
   type MyConsultation,
+  type MyReservation,
+  type Nationality,
+  type PreferredChannel,
+  type ResidenceStatus,
 } from '../../lib/customerAuth'
-import SEO from '../../components/SEO'
 
-/**
- * 고객 마이페이지.
- * - 인증 안 된 사용자는 /login으로 리다이렉트
- * - 내 상담 신청 목록 + 간단 프로필
- */
+type TabId = 'overview' | 'reservations' | 'consultations' | 'account'
+
+const menuItems: Array<{ id: TabId; label: string; icon: LucideIcon }> = [
+  { id: 'overview', label: '마이페이지 홈', icon: Inbox },
+  { id: 'reservations', label: '내 예약', icon: CalendarClock },
+  { id: 'consultations', label: '상담 내역', icon: MessageSquareMore },
+  { id: 'account', label: '계정 정보', icon: Settings },
+]
+
+const nationalityLabel: Record<Nationality, string> = {
+  kr: '한국',
+  cn: '중국',
+  other: '기타',
+}
+
+const residenceStatusLabel: Record<ResidenceStatus, string> = {
+  citizen: '내국인',
+  long_term: '장기 체류',
+  short_term: '단기 체류',
+  tourist: '관광',
+}
+
+const preferredChannelLabel: Record<PreferredChannel, string> = {
+  kakao: '카카오톡',
+  wechat: 'WeChat',
+  phone: '전화',
+  email: '이메일',
+}
+
+const consultationStatusClass: Record<MyConsultation['status'], string> = {
+  new: 'border-brand-200 bg-brand-50 text-brand-700',
+  contacted: 'border-amber-200 bg-amber-50 text-amber-700',
+  in_progress: 'border-sky-200 bg-sky-50 text-sky-700',
+  done: 'border-mint-200 bg-mint-50 text-mint-700',
+  cancelled: 'border-slate-200 bg-slate-100 text-slate-500',
+}
+
+const reservationStatusClass: Record<MyReservation['status'], string> = {
+  confirmed: 'border-mint-200 bg-mint-50 text-mint-700',
+  pending: 'border-amber-200 bg-amber-50 text-amber-700',
+  completed: 'border-sky-200 bg-sky-50 text-sky-700',
+  reschedule_needed: 'border-rose-200 bg-rose-50 text-rose-700',
+}
+
 export default function MyPage() {
   const navigate = useNavigate()
-  const [user, setUser] = useState<CustomerUser | null>(null)
+  const user = getSession()
+  const [activeTab, setActiveTab] = useState<TabId>('overview')
   const [consultations, setConsultations] = useState<MyConsultation[]>([])
+  const [reservations, setReservations] = useState<MyReservation[]>([])
   const [loading, setLoading] = useState(true)
-  const [checked, setChecked] = useState(false)
 
   useEffect(() => {
-    const session = getSession()
-    if (!session) {
-      navigate('/login', { replace: true })
-      return
+    let mounted = true
+
+    Promise.all([getMyConsultations(), getMyReservations()])
+      .then(([consultationItems, reservationItems]) => {
+        if (!mounted) return
+        setConsultations(consultationItems)
+        setReservations(reservationItems)
+      })
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+
+    return () => {
+      mounted = false
     }
-    setUser(session)
-    setChecked(true)
+  }, [])
 
-    getMyConsultations()
-      .then(setConsultations)
-      .finally(() => setLoading(false))
-  }, [navigate])
+  const ongoingConsultations = useMemo(
+    () => consultations.filter((item) => ['new', 'contacted', 'in_progress'].includes(item.status)),
+    [consultations],
+  )
+  const completedConsultations = useMemo(
+    () => consultations.filter((item) => item.status === 'done'),
+    [consultations],
+  )
+  const upcomingReservations = useMemo(
+    () =>
+      reservations.filter((item) =>
+        ['confirmed', 'pending', 'reschedule_needed'].includes(item.status),
+      ),
+    [reservations],
+  )
 
-  if (!checked || !user) return null
+  if (!user) return null
 
   const handleLogout = () => {
     logout()
     navigate('/', { replace: true })
   }
 
-  const ongoing = consultations.filter(
-    (c) => c.status === 'new' || c.status === 'contacted' || c.status === 'in_progress',
-  )
-  const done = consultations.filter((c) => c.status === 'done')
-
   return (
     <>
       <SEO title="마이페이지" path="/my" noIndex />
-      <section className="bg-slate-50/60 py-12 sm:py-16">
-      <div className="container-page">
-        {/* 헤더 카드 */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card sm:p-8">
-          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white">
-                <span className="text-xl font-black">{user.name.slice(0, 1)}</span>
-              </span>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-brand-700">
-                  마이페이지
-                </p>
-                <p className="text-2xl font-extrabold tracking-tight text-ink">{user.name} 님</p>
-                <p className="text-sm text-ink-muted">{user.email} · {user.phone}</p>
+      <section className="bg-slate-50 py-10 sm:py-12">
+        <div className="container-page">
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-brand-700">내 계정</p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+              마이페이지
+            </h1>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+            <aside className="h-fit rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 p-5">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+                    {user.name.slice(0, 1)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-ink">{user.name}</p>
+                    <p className="truncate text-xs text-ink-muted">{user.email}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-ink-soft transition hover:border-brand-200 hover:text-brand-700"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              로그아웃
-            </button>
-          </div>
 
-          {/* 통계 */}
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <StatBox icon={Clock} label="진행 중" value={ongoing.length} accent="brand" />
-            <StatBox icon={CheckCircle2} label="완료" value={done.length} accent="mint" />
-            <StatBox icon={Inbox} label="전체" value={consultations.length} accent="ink" />
-          </div>
-        </div>
+              <nav className="p-2">
+                {menuItems.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    className={[
+                      'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition',
+                      activeTab === id
+                        ? 'bg-slate-900 text-white'
+                        : 'text-ink-soft hover:bg-slate-100 hover:text-ink',
+                    ].join(' ')}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </nav>
 
-        {/* 내 상담 신청 */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold tracking-tight text-ink">내 상담 신청</h2>
-            <Link
-              to="/#consult"
-              className="inline-flex items-center gap-1 text-sm font-bold text-brand-700 hover:text-brand-800"
-            >
-              새 상담 신청
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="mt-4 flex items-center justify-center rounded-3xl border border-slate-200 bg-white py-12 text-sm text-ink-muted">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              불러오는 중…
-            </div>
-          ) : consultations.length === 0 ? (
-            <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-8 text-center">
-              <UserCircle className="mx-auto h-10 w-10 text-ink-light" />
-              <p className="mt-3 text-sm font-bold text-ink">아직 상담 신청 내역이 없어요.</p>
-              <p className="mt-1 text-xs text-ink-muted">
-                첫 상담을 신청하고 더 나은 요금제·서비스를 찾아보세요.
-              </p>
-              <Link to="/#consult" className="btn-primary mt-5 text-sm">
-                무료 상담 신청하기
-              </Link>
-            </div>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {consultations.map((c) => (
-                <ConsultationItem key={c.id} consultation={c} />
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* AI 추천 다시 보기 */}
-        <div className="mt-8">
-          <Link
-            to="/chinese-users"
-            className="group flex items-center justify-between gap-4 rounded-3xl border border-brand-100 bg-gradient-to-br from-brand-50 to-gold-50 p-5 transition hover:shadow-soft"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-sm font-extrabold text-ink">AI 맞춤 추천 다시 받기</p>
-                <p className="text-xs text-ink-muted">
-                  체류 조건이 바뀌었다면 더 정확한 조합을 받아보세요.
-                </p>
+              <div className="border-t border-slate-200 p-2">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-ink-soft transition hover:bg-slate-100 hover:text-ink"
+                >
+                  <LogOut className="h-4 w-4" />
+                  로그아웃
+                </button>
               </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-brand-700 transition group-hover:translate-x-0.5" />
-          </Link>
-        </div>
+            </aside>
 
-        <p className="mt-6 text-center text-xs text-ink-light">
-          계정이나 데이터 문제가 있으면{' '}
-          <a
-            href="mailto:hello@lifful.example"
-            className="font-semibold text-brand-700 hover:underline"
-          >
-            hello@lifful.example
-          </a>
-          으로 문의해 주세요.
-        </p>
-      </div>
-    </section>
+            <main className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm">
+              <PageHeader activeTab={activeTab} />
+
+              <div className="p-5 sm:p-6">
+                {loading ? (
+                  <LoadingState />
+                ) : (
+                  <>
+                    {activeTab === 'overview' && (
+                      <OverviewTab
+                        consultations={consultations}
+                        reservations={reservations}
+                        ongoingCount={ongoingConsultations.length}
+                        completedCount={completedConsultations.length}
+                        upcomingCount={upcomingReservations.length}
+                        onMove={setActiveTab}
+                      />
+                    )}
+
+                    {activeTab === 'reservations' && (
+                      <ReservationsTab reservations={reservations} />
+                    )}
+
+                    {activeTab === 'consultations' && (
+                      <ConsultationsTab consultations={consultations} />
+                    )}
+
+                    {activeTab === 'account' && (
+                      <AccountTab
+                        user={{
+                          name: user.name,
+                          email: user.email,
+                          phone: user.phone,
+                          nationality: nationalityLabel[user.nationality],
+                          residenceStatus: residenceStatusLabel[user.residenceStatus],
+                          preferredLanguage: getPreferredLanguageLabel(user.preferredLanguage),
+                          preferredChannel: preferredChannelLabel[user.preferredChannel],
+                          visaType: user.visaType ?? '해당 없음',
+                          marketingConsent: user.marketingConsent ? '동의' : '미동의',
+                          createdAt: new Date(user.createdAt).toLocaleDateString('ko-KR'),
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </main>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
 
-function StatBox({
-  icon: Icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: typeof Clock
-  label: string
-  value: number
-  accent: 'brand' | 'mint' | 'ink'
-}) {
-  const cls: Record<typeof accent, string> = {
-    brand: 'bg-brand-50 text-brand-700',
-    mint: 'bg-mint-50 text-mint-700',
-    ink: 'bg-slate-100 text-ink',
+function PageHeader({ activeTab }: { activeTab: TabId }) {
+  const titleMap: Record<TabId, string> = {
+    overview: '마이페이지 홈',
+    reservations: '내 예약',
+    consultations: '상담 내역',
+    account: '계정 정보',
   }
+
+  const descriptionMap: Record<TabId, string> = {
+    overview: '예약, 상담, 계정 정보를 한 곳에서 확인합니다.',
+    reservations: '설치 일정, 전화 상담, 온라인 안내 예약을 확인합니다.',
+    consultations: '신청한 상담의 진행 상태와 담당자를 확인합니다.',
+    account: '연락처, 체류 정보, 선호 상담 채널을 확인합니다.',
+  }
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-center">
-      <span
-        className={`mx-auto flex h-7 w-7 items-center justify-center rounded-xl ${cls[accent]}`}
-      >
-        <Icon className="h-3.5 w-3.5" />
-      </span>
-      <p className="mt-2 text-xl font-black tracking-tight text-ink">{value}</p>
-      <p className="text-[11px] font-bold text-ink-muted">{label}</p>
+    <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+      <h2 className="text-xl font-extrabold tracking-tight text-ink">{titleMap[activeTab]}</h2>
+      <p className="mt-1 text-sm text-ink-muted">{descriptionMap[activeTab]}</p>
     </div>
   )
 }
 
-const statusStyleMap: Record<MyConsultation['status'], { cls: string; dot: string }> = {
-  new: { cls: 'bg-brand-50 text-brand-700 border-brand-100', dot: 'bg-brand-500' },
-  contacted: {
-    cls: 'bg-amber-50 text-amber-700 border-amber-100',
-    dot: 'bg-amber-500',
-  },
-  in_progress: { cls: 'bg-sky-50 text-sky-700 border-sky-100', dot: 'bg-sky-500' },
-  done: { cls: 'bg-mint-50 text-mint-700 border-mint-100', dot: 'bg-mint-500' },
-  cancelled: { cls: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400' },
+function OverviewTab({
+  consultations,
+  reservations,
+  ongoingCount,
+  completedCount,
+  upcomingCount,
+  onMove,
+}: {
+  consultations: MyConsultation[]
+  reservations: MyReservation[]
+  ongoingCount: number
+  completedCount: number
+  upcomingCount: number
+  onMove: (tab: TabId) => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard icon={Clock3} label="진행 중 상담" value={ongoingCount} />
+        <SummaryCard icon={CalendarClock} label="다가오는 예약" value={upcomingCount} />
+        <SummaryCard icon={CheckCircle2} label="완료된 상담" value={completedCount} />
+        <SummaryCard icon={Inbox} label="전체 기록" value={consultations.length + reservations.length} />
+      </div>
+
+      <SectionBlock
+        title="다가오는 예약"
+        action={<button type="button" onClick={() => onMove('reservations')} className="link-button">전체 보기</button>}
+      >
+        {reservations.length > 0 ? (
+          <div className="divide-y divide-slate-200">
+            {reservations.slice(0, 2).map((reservation) => (
+              <ReservationRow key={reservation.id} reservation={reservation} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="예약된 일정이 없습니다." />
+        )}
+      </SectionBlock>
+
+      <SectionBlock
+        title="최근 상담"
+        action={<button type="button" onClick={() => onMove('consultations')} className="link-button">전체 보기</button>}
+      >
+        {consultations.length > 0 ? (
+          <div className="divide-y divide-slate-200">
+            {consultations.slice(0, 2).map((consultation) => (
+              <ConsultationRow key={consultation.id} consultation={consultation} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="상담 내역이 없습니다." />
+        )}
+      </SectionBlock>
+
+      <div className="flex flex-wrap gap-2">
+        <Link to="/#consult" className="btn-primary text-sm">
+          새 상담 신청
+        </Link>
+        <Link to="/services/mobile" className="btn-secondary text-sm">
+          휴대폰 요금 보기
+        </Link>
+      </div>
+    </div>
+  )
 }
 
-function ConsultationItem({ consultation: c }: { consultation: MyConsultation }) {
-  const style = statusStyleMap[c.status]
+function ReservationsTab({ reservations }: { reservations: MyReservation[] }) {
+  if (reservations.length === 0) {
+    return <EmptyState title="예약된 일정이 없습니다." />
+  }
+
   return (
-    <li className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-muted">
-            {c.serviceName}
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{c.message}</p>
-        </div>
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${style.cls}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-          {c.statusLabel}
-        </span>
+    <div className="overflow-hidden rounded-lg border border-slate-200">
+      <div className="divide-y divide-slate-200">
+        {reservations.map((reservation) => (
+          <ReservationRow key={reservation.id} reservation={reservation} detailed />
+        ))}
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
-        <span>
-          신청:{' '}
-          {new Date(c.createdAt).toLocaleString('ko-KR', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
-        {c.assignedStaff && <span>담당: {c.assignedStaff}</span>}
-      </div>
-    </li>
+    </div>
   )
+}
+
+function ConsultationsTab({ consultations }: { consultations: MyConsultation[] }) {
+  if (consultations.length === 0) {
+    return <EmptyState title="상담 요청 내역이 없습니다." />
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200">
+      <div className="divide-y divide-slate-200">
+        {consultations.map((consultation) => (
+          <ConsultationRow key={consultation.id} consultation={consultation} detailed />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AccountTab({
+  user,
+}: {
+  user: Record<
+    | 'name'
+    | 'email'
+    | 'phone'
+    | 'nationality'
+    | 'residenceStatus'
+    | 'preferredLanguage'
+    | 'preferredChannel'
+    | 'visaType'
+    | 'marketingConsent'
+    | 'createdAt',
+    string
+  >
+}) {
+  const rows = [
+    ['이름', user.name],
+    ['이메일', user.email],
+    ['전화번호', user.phone],
+    ['국적', user.nationality],
+    ['체류 상태', user.residenceStatus],
+    ['선호 언어', user.preferredLanguage],
+    ['선호 연락 채널', user.preferredChannel],
+    ['비자 종류', user.visaType],
+    ['마케팅 수신', user.marketingConsent],
+    ['가입일', user.createdAt],
+  ]
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200">
+      <dl className="divide-y divide-slate-200">
+        {rows.map(([label, value]) => (
+          <div key={label} className="grid gap-1 px-4 py-4 sm:grid-cols-[160px_minmax(0,1fr)]">
+            <dt className="text-sm font-semibold text-ink-muted">{label}</dt>
+            <dd className="break-words text-sm font-medium text-ink">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
+}
+
+function SectionBlock({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-lg border border-slate-200">
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+        <h3 className="text-sm font-bold text-ink">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function SummaryCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-ink-muted">{label}</p>
+        <Icon className="h-4 w-4 text-ink-light" />
+      </div>
+      <p className="mt-2 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
+    </div>
+  )
+}
+
+function ReservationRow({
+  reservation,
+  detailed = false,
+}: {
+  reservation: MyReservation
+  detailed?: boolean
+}) {
+  return (
+    <article className="p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-sm font-bold text-ink">{reservation.serviceName}</h4>
+            <StatusBadge label={reservation.statusLabel} className={reservationStatusClass[reservation.status]} />
+          </div>
+          <p className="mt-1 text-sm text-ink-muted">{formatDateTime(reservation.scheduleAt)}</p>
+          {detailed ? <p className="mt-2 text-sm leading-relaxed text-ink-soft">{reservation.note}</p> : null}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2 text-xs text-ink-muted sm:justify-end">
+          <InlineInfo icon={Phone} value={reservation.visitTypeLabel} />
+          {reservation.assignedStaff ? <InlineInfo icon={UserCircle2} value={reservation.assignedStaff} /> : null}
+        </div>
+      </div>
+      {detailed && reservation.address ? (
+        <div className="mt-3 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-ink-soft">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink-light" />
+          <span>{reservation.address}</span>
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
+function ConsultationRow({
+  consultation,
+  detailed = false,
+}: {
+  consultation: MyConsultation
+  detailed?: boolean
+}) {
+  return (
+    <article className="p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-sm font-bold text-ink">{consultation.serviceName}</h4>
+            <StatusBadge
+              label={consultation.statusLabel}
+              className={consultationStatusClass[consultation.status]}
+            />
+          </div>
+          <p className="mt-1 text-sm text-ink-muted">요청일 {formatDateTime(consultation.createdAt)}</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{consultation.message}</p>
+        </div>
+        {consultation.assignedStaff ? (
+          <div className="shrink-0 text-xs text-ink-muted">
+            <InlineInfo icon={UserCircle2} value={`담당자 ${consultation.assignedStaff}`} />
+          </div>
+        ) : null}
+      </div>
+      {detailed ? (
+        <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-ink-muted">
+          현재 상태가 변경되면 알림 센터와 이 페이지에서 확인할 수 있습니다.
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
+function StatusBadge({ label, className }: { label: string; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${className}`}>
+      {label}
+    </span>
+  )
+}
+
+function InlineInfo({ icon: Icon, value }: { icon: LucideIcon; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Icon className="h-3.5 w-3.5" />
+      {value}
+    </span>
+  )
+}
+
+function EmptyState({ title }: { title: string }) {
+  return (
+    <div className="px-4 py-12 text-center">
+      <Inbox className="mx-auto h-8 w-8 text-ink-light" />
+      <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
+      <p className="mt-1 text-sm text-ink-muted">새로운 내역이 생기면 이곳에 표시됩니다.</p>
+    </div>
+  )
+}
+
+function LoadingState() {
+  return (
+    <div className="flex items-center justify-center py-16 text-sm text-ink-muted">
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      마이페이지 정보를 불러오는 중입니다.
+    </div>
+  )
+}
+
+function getPreferredLanguageLabel(language: 'ko' | 'zh' | 'en') {
+  if (language === 'ko') return '한국어'
+  if (language === 'zh') return '중국어'
+  return 'English'
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
