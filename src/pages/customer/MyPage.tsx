@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import SEO from '../../components/SEO'
+import { addSiteNotification } from '../../components/NotificationCenter'
 import {
   getMyConsultations,
   getMyReservations,
@@ -26,6 +27,7 @@ import {
   type PreferredChannel,
   type ResidenceStatus,
 } from '../../lib/customerAuth'
+import { cancelServiceRequestByCustomer } from '../../lib/serviceRequests'
 
 type TabId = 'overview' | 'reservations' | 'consultations' | 'account'
 
@@ -95,6 +97,14 @@ export default function MyPage() {
     return () => {
       mounted = false
     }
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => {
+      getMyConsultations().then(setConsultations)
+    }
+    window.addEventListener('lifful-service-requests-changed', refresh)
+    return () => window.removeEventListener('lifful-service-requests-changed', refresh)
   }, [])
 
   const ongoingConsultations = useMemo(
@@ -468,6 +478,12 @@ function ConsultationRow({
   consultation: MyConsultation
   detailed?: boolean
 }) {
+  const handleCancel = async () => {
+    if (!consultation.canCancel) return
+    await cancelServiceRequestByCustomer(consultation.id)
+    addSiteNotification('신청 취소', `${consultation.serviceName} 신청이 취소되었습니다.`)
+  }
+
   return (
     <article className="p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -489,8 +505,38 @@ function ConsultationRow({
         ) : null}
       </div>
       {detailed ? (
-        <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-ink-muted">
-          현재 상태가 변경되면 알림 센터와 이 페이지에서 확인할 수 있습니다.
+        <div className="mt-3 space-y-3">
+          <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-ink-muted">
+            현재 상태가 변경되면 알림 센터와 이 페이지에서 확인할 수 있습니다.
+          </div>
+          {consultation.timeline?.length ? (
+            <div className="rounded-lg border border-slate-200 px-3 py-3">
+              <p className="text-xs font-bold text-ink-muted">진행 이력</p>
+              <ol className="mt-2 space-y-2">
+                {consultation.timeline
+                  .slice()
+                  .reverse()
+                  .map((item) => (
+                    <li key={item.id} className="text-xs">
+                      <p className="font-bold text-ink">{item.label}</p>
+                      <p className="mt-0.5 text-ink-muted">{item.description}</p>
+                      <p className="mt-0.5 text-ink-light">
+                        {new Date(item.at).toLocaleString('ko-KR')}
+                      </p>
+                    </li>
+                  ))}
+              </ol>
+            </div>
+          ) : null}
+          {consultation.canCancel ? (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-ink-soft transition hover:border-brand-200 hover:text-brand-700"
+            >
+              신청 취소
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>

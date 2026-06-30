@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Calculator, Zap, AlertCircle, TrendingDown, ArrowRight, Loader2, X } from 'lucide-react'
 import { getSession, login } from '../lib/customerAuth'
+import { addSiteNotification } from './NotificationCenter'
 import {
   estimateMobilePrice,
   getMobilePricingSettings,
@@ -9,6 +10,7 @@ import {
   type MobileExtraOption,
   type MobilePlanType,
 } from '../lib/mobilePlans'
+import { createMobileServiceRequest } from '../lib/serviceRequests'
 
 /**
  * 서비스 카테고리별 인터랙티브 섹션.
@@ -261,6 +263,7 @@ function MobilePlanStarter() {
   const [extraOption, setExtraOption] = useState<MobileExtraOption>('none')
   const [applied, setApplied] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const syncSession = () => setSession(getSession())
@@ -283,13 +286,31 @@ function MobilePlanStarter() {
     })
   }, [carrier, dataUsage, extraOption, planType, pricingSettings])
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!session) {
       setLoginOpen(true)
       return
     }
 
+    if (saving) return
+    setSaving(true)
+    await createMobileServiceRequest({
+      user: session,
+      details: {
+        carrier,
+        carrierName: estimate.carrierName,
+        planType,
+        dataUsage,
+        extraOption,
+        estimatedMonthlyPrice: estimate.monthly,
+      },
+    })
+    addSiteNotification(
+      '휴대폰 신청 접수',
+      `${estimate.carrierName} 기준 월 ${estimate.monthly.toLocaleString()}원대 신청이 접수되었습니다.`,
+    )
     setApplied(true)
+    setSaving(false)
   }
 
   return (
@@ -359,8 +380,51 @@ function MobilePlanStarter() {
             </p>
           </div>
           <p className="text-xs text-ink-muted">
-            실제 신청 저장 기능은 아직 없고, 현재는 버튼 반응만 연결되어 있습니다.
+            신청하면 마이페이지 상담 내역과 관리자 상담 요청에 접수됩니다.
           </p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h4 className="text-sm font-extrabold text-ink">추천 요금제</h4>
+          <span className="text-xs font-semibold text-ink-muted">관리자 설정 기준</span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {pricingSettings.planCards
+            .filter((plan) => plan.isVisible)
+            .slice()
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .slice(0, 3)
+            .map((plan) => (
+              <div
+                key={plan.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-brand-700">
+                      {pricingSettings.carriers.find((item) => item.id === plan.carrier)?.name ??
+                        plan.carrier.toUpperCase()}
+                    </p>
+                    <p className="mt-1 text-sm font-extrabold text-ink">{plan.name}</p>
+                  </div>
+                  {plan.isRecommended ? (
+                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700">
+                      추천
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-xl font-black text-ink">
+                  월 {plan.monthlyPrice.toLocaleString()}원
+                </p>
+                <p className="mt-1 text-xs text-ink-muted">{plan.dataLabel}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">{plan.callTextLabel}</p>
+                {plan.promotionText ? (
+                  <p className="mt-2 text-xs font-semibold text-brand-700">{plan.promotionText}</p>
+                ) : null}
+              </div>
+            ))}
         </div>
       </div>
 
@@ -370,15 +434,24 @@ function MobilePlanStarter() {
             ? '로그인 상태입니다. 지금은 신청 버튼 동작만 확인할 수 있습니다.'
             : '신청하려면 로그인해야 합니다.'}
         </p>
-        <button type="button" onClick={handleApply} className="btn-primary text-sm">
-          {session ? '신청 버튼 눌러보기' : '로그인 후 신청'}
-          <ArrowRight className="h-3.5 w-3.5" />
+        <button type="button" onClick={handleApply} disabled={saving} className="btn-primary text-sm">
+          {saving ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              신청 저장 중
+            </>
+          ) : (
+            <>
+              {session ? '신청하기' : '로그인 후 신청'}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </>
+          )}
         </button>
       </div>
 
       {applied && (
         <div className="mt-4 rounded-2xl border border-mint-200 bg-mint-50 px-4 py-3 text-sm font-medium text-mint-800">
-          버튼 동작만 연결된 상태입니다. 실제 신청 저장 기능은 아직 구현하지 않았습니다.
+          신청이 접수되었습니다. 마이페이지 상담 내역에서 확인할 수 있습니다.
         </div>
       )}
 

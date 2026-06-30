@@ -1,21 +1,27 @@
 import { useState, type FormEvent } from 'react'
-import { CheckCircle2, RotateCcw, Save, ShieldAlert, Smartphone } from 'lucide-react'
+import { CheckCircle2, Plus, RotateCcw, Save, ShieldAlert, Smartphone, Trash2 } from 'lucide-react'
 import { getSession } from '../../lib/adminAuth'
 import {
   getMobilePricingSettings,
+  listMobilePricingAuditLogs,
   resetMobilePricingSettings,
   saveMobilePricingSettings,
+  type MobileCarrierId,
+  type MobilePlanCard,
   type MobilePricingSettings,
 } from '../../lib/mobilePlans'
 
 const inputCls =
-  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-ink transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15'
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-ink transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-slate-50'
 
 export default function AdminMobilePricing() {
   const session = getSession()
   const canEdit = session?.role === 'super_admin'
   const [settings, setSettings] = useState<MobilePricingSettings>(getMobilePricingSettings())
   const [saved, setSaved] = useState(false)
+  const [auditVersion, setAuditVersion] = useState(0)
+  const auditLogs = listMobilePricingAuditLogs()
+  void auditVersion
 
   const updateCarrier = (
     id: MobilePricingSettings['carriers'][number]['id'],
@@ -29,20 +35,57 @@ export default function AdminMobilePricing() {
     }))
   }
 
+  const updatePlanCard = (id: string, patch: Partial<MobilePlanCard>) => {
+    setSettings((current) => ({
+      ...current,
+      planCards: current.planCards.map((plan) => (plan.id === id ? { ...plan, ...patch } : plan)),
+    }))
+  }
+
+  const addPlanCard = () => {
+    setSettings((current) => ({
+      ...current,
+      planCards: [
+        ...current.planCards,
+        {
+          id: `plan-${Date.now()}`,
+          carrier: 'skt',
+          name: '새 요금제',
+          monthlyPrice: 30000,
+          dataLabel: '월 10GB',
+          callTextLabel: '통화/문자 기본',
+          promotionText: '',
+          isRecommended: false,
+          isVisible: true,
+          sortOrder: current.planCards.length + 1,
+        },
+      ],
+    }))
+  }
+
+  const removePlanCard = (id: string) => {
+    setSettings((current) => ({
+      ...current,
+      planCards: current.planCards.filter((plan) => plan.id !== id),
+    }))
+  }
+
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!canEdit) return
 
-    await saveMobilePricingSettings(settings)
+    await saveMobilePricingSettings(settings, session)
     setSettings(getMobilePricingSettings())
+    setAuditVersion((value) => value + 1)
     setSaved(true)
     window.setTimeout(() => setSaved(false), 2200)
   }
 
   const onReset = () => {
     if (!canEdit) return
-    resetMobilePricingSettings()
+    resetMobilePricingSettings(session)
     setSettings(getMobilePricingSettings())
+    setAuditVersion((value) => value + 1)
   }
 
   return (
@@ -51,7 +94,7 @@ export default function AdminMobilePricing() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">휴대폰 요금 관리</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            서비스 상세 페이지의 휴대폰 예상 월 요금 계산에 사용되는 기준값입니다.
+            예상 요금 계산 기준과 실제 노출할 요금제 카드를 관리합니다.
           </p>
         </div>
         <a href="/services/mobile" target="_blank" className="btn-secondary text-sm">
@@ -132,103 +175,119 @@ export default function AdminMobilePricing() {
 
         <section className="grid gap-6 lg:grid-cols-3">
           <PricingGroup title="요금제 성향 배율">
-            <NumberField
-              label="알뜰하게"
-              value={settings.planMultipliers.budget}
-              disabled={!canEdit}
-              step={0.1}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  planMultipliers: { ...current.planMultipliers, budget: value },
-                }))
-              }
-            />
-            <NumberField
-              label="정식 통신사 중심"
-              value={settings.planMultipliers.major}
-              disabled={!canEdit}
-              step={0.1}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  planMultipliers: { ...current.planMultipliers, major: value },
-                }))
-              }
-            />
+            <NumberField label="알뜰하게" value={settings.planMultipliers.budget} disabled={!canEdit} step={0.1} onChange={(value) => setSettings((current) => ({ ...current, planMultipliers: { ...current.planMultipliers, budget: value } }))} />
+            <NumberField label="정식 통신사 중심" value={settings.planMultipliers.major} disabled={!canEdit} step={0.1} onChange={(value) => setSettings((current) => ({ ...current, planMultipliers: { ...current.planMultipliers, major: value } }))} />
           </PricingGroup>
 
           <PricingGroup title="데이터 사용량 추가금">
-            <NumberField
-              label="가볍게"
-              value={settings.dataExtras.light}
-              disabled={!canEdit}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  dataExtras: { ...current.dataExtras, light: value },
-                }))
-              }
-            />
-            <NumberField
-              label="보통"
-              value={settings.dataExtras.standard}
-              disabled={!canEdit}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  dataExtras: { ...current.dataExtras, standard: value },
-                }))
-              }
-            />
-            <NumberField
-              label="많이 씀"
-              value={settings.dataExtras.heavy}
-              disabled={!canEdit}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  dataExtras: { ...current.dataExtras, heavy: value },
-                }))
-              }
-            />
+            <NumberField label="가볍게" value={settings.dataExtras.light} disabled={!canEdit} onChange={(value) => setSettings((current) => ({ ...current, dataExtras: { ...current.dataExtras, light: value } }))} />
+            <NumberField label="보통" value={settings.dataExtras.standard} disabled={!canEdit} onChange={(value) => setSettings((current) => ({ ...current, dataExtras: { ...current.dataExtras, standard: value } }))} />
+            <NumberField label="많이 씀" value={settings.dataExtras.heavy} disabled={!canEdit} onChange={(value) => setSettings((current) => ({ ...current, dataExtras: { ...current.dataExtras, heavy: value } }))} />
           </PricingGroup>
 
           <PricingGroup title="추가 조건 금액">
-            <NumberField
-              label="없음"
-              value={settings.optionExtras.none}
-              disabled={!canEdit}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  optionExtras: { ...current.optionExtras, none: value },
-                }))
-              }
-            />
-            <NumberField
-              label="가족 결합 가능"
-              value={settings.optionExtras.family}
-              disabled={!canEdit}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  optionExtras: { ...current.optionExtras, family: value },
-                }))
-              }
-            />
-            <NumberField
-              label="eSIM 필요"
-              value={settings.optionExtras.esim}
-              disabled={!canEdit}
-              onChange={(value) =>
-                setSettings((current) => ({
-                  ...current,
-                  optionExtras: { ...current.optionExtras, esim: value },
-                }))
-              }
-            />
+            <NumberField label="없음" value={settings.optionExtras.none} disabled={!canEdit} onChange={(value) => setSettings((current) => ({ ...current, optionExtras: { ...current.optionExtras, none: value } }))} />
+            <NumberField label="가족 결합 가능" value={settings.optionExtras.family} disabled={!canEdit} onChange={(value) => setSettings((current) => ({ ...current, optionExtras: { ...current.optionExtras, family: value } }))} />
+            <NumberField label="eSIM 필요" value={settings.optionExtras.esim} disabled={!canEdit} onChange={(value) => setSettings((current) => ({ ...current, optionExtras: { ...current.optionExtras, esim: value } }))} />
           </PricingGroup>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <h2 className="text-sm font-bold text-ink">노출 요금제 카드</h2>
+            <button type="button" onClick={addPlanCard} disabled={!canEdit} className="btn-secondary text-xs">
+              <Plus className="h-3.5 w-3.5" />
+              요금제 추가
+            </button>
+          </div>
+          <div className="divide-y divide-slate-200">
+            {settings.planCards
+              .slice()
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((plan) => (
+                <div key={plan.id} className="grid gap-3 p-5 lg:grid-cols-[140px_1fr_130px_1fr_1fr_120px]">
+                  <select
+                    value={plan.carrier}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      updatePlanCard(plan.id, { carrier: event.target.value as MobileCarrierId })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="skt">SKT</option>
+                    <option value="kt">KT</option>
+                    <option value="lgu">LG U+</option>
+                  </select>
+                  <input
+                    value={plan.name}
+                    disabled={!canEdit}
+                    onChange={(event) => updatePlanCard(plan.id, { name: event.target.value })}
+                    className={inputCls}
+                    placeholder="요금제명"
+                  />
+                  <input
+                    type="number"
+                    value={plan.monthlyPrice}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      updatePlanCard(plan.id, { monthlyPrice: Number(event.target.value) })
+                    }
+                    className={inputCls}
+                  />
+                  <input
+                    value={plan.dataLabel}
+                    disabled={!canEdit}
+                    onChange={(event) => updatePlanCard(plan.id, { dataLabel: event.target.value })}
+                    className={inputCls}
+                    placeholder="데이터"
+                  />
+                  <input
+                    value={plan.promotionText}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      updatePlanCard(plan.id, { promotionText: event.target.value })
+                    }
+                    className={inputCls}
+                    placeholder="프로모션"
+                  />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-ink-muted">
+                      <input
+                        type="checkbox"
+                        checked={plan.isRecommended}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          updatePlanCard(plan.id, { isRecommended: event.target.checked })
+                        }
+                        className="mr-1 accent-brand-600"
+                      />
+                      추천
+                    </label>
+                    <label className="text-xs font-bold text-ink-muted">
+                      <input
+                        type="checkbox"
+                        checked={plan.isVisible}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          updatePlanCard(plan.id, { isVisible: event.target.checked })
+                        }
+                        className="mr-1 accent-brand-600"
+                      />
+                      노출
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removePlanCard(plan.id)}
+                      disabled={!canEdit}
+                      className="text-ink-light hover:text-brand-700"
+                      aria-label="요금제 삭제"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
         </section>
 
         <div className="flex flex-wrap items-center justify-end gap-3">
@@ -248,6 +307,29 @@ export default function AdminMobilePricing() {
           </button>
         </div>
       </form>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-bold text-ink">요금 변경 로그</h2>
+        <div className="mt-4 divide-y divide-slate-200">
+          {auditLogs.length === 0 ? (
+            <p className="py-6 text-sm text-ink-muted">아직 변경 기록이 없습니다.</p>
+          ) : (
+            auditLogs.slice(0, 8).map((log) => (
+              <div key={log.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-ink">{log.action}</p>
+                  <p className="text-xs text-ink-muted">
+                    {log.actorName} · {log.actorEmail}
+                  </p>
+                </div>
+                <p className="text-xs text-ink-muted">
+                  {new Date(log.createdAt).toLocaleString('ko-KR')}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   )
 }

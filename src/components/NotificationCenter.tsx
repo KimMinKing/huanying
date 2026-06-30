@@ -3,33 +3,38 @@ import { Bell, BellRing, CheckCheck, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getSession } from '../lib/customerAuth'
 
-interface SiteNotification {
+export interface SiteNotification {
   id: string
   title: string
   body: string
   unread: boolean
+  createdAt: string
 }
 
 const STORAGE_KEY_ENABLED = 'lifful_site_notifications_enabled'
 const STORAGE_KEY_ITEMS = 'lifful_site_notifications'
+const EVENT_NAME = 'lifful-notifications-changed'
 
 function buildDefaultNotifications(): SiteNotification[] {
   const customer = getSession()
+  const now = new Date().toISOString()
 
   return [
     {
       id: 'consult-follow-up',
       title: '상담 진행 알림',
       body: customer
-        ? `${customer.name}님, 상담 진행 상태가 바뀌면 이곳에서 바로 확인할 수 있습니다.`
+        ? `${customer.name}님의 상담 상태가 바뀌면 이곳에서 확인할 수 있습니다.`
         : '로그인하면 상담 진행 상태 변경 알림을 이곳에서 확인할 수 있습니다.',
       unread: true,
+      createdAt: now,
     },
     {
       id: 'guide-update',
       title: '가이드 업데이트',
-      body: '외국인/유학생 준비 서류 체크리스트와 요금 비교 기준 페이지가 추가되었습니다.',
+      body: '외국인/유학생 준비 서류와 요금 비교 기준 페이지가 추가되었습니다.',
       unread: true,
+      createdAt: now,
     },
   ]
 }
@@ -50,6 +55,23 @@ function loadNotifications() {
   }
 }
 
+function saveNotifications(notifications: SiteNotification[]) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(notifications))
+  window.dispatchEvent(new Event(EVENT_NAME))
+}
+
+export function addSiteNotification(title: string, body: string) {
+  const next: SiteNotification = {
+    id: `notice-${Date.now()}`,
+    title,
+    body,
+    unread: true,
+    createdAt: new Date().toISOString(),
+  }
+  saveNotifications([next, ...loadNotifications()])
+}
+
 export default function NotificationCenter() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<SiteNotification[]>(loadNotifications)
@@ -60,9 +82,10 @@ export default function NotificationCenter() {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(notifications))
-  }, [notifications])
+    const sync = () => setNotifications(loadNotifications())
+    window.addEventListener(EVENT_NAME, sync)
+    return () => window.removeEventListener(EVENT_NAME, sync)
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -88,9 +111,9 @@ export default function NotificationCenter() {
   )
 
   const markAllRead = () => {
-    setNotifications((current) =>
-      current.map((notification) => ({ ...notification, unread: false })),
-    )
+    const next = notifications.map((notification) => ({ ...notification, unread: false }))
+    saveNotifications(next)
+    setNotifications(next)
   }
 
   const handleToggleEnabled = async () => {
@@ -128,7 +151,7 @@ export default function NotificationCenter() {
               <div>
                 <p className="text-sm font-extrabold text-ink">알림</p>
                 <p className="mt-1 text-xs text-ink-muted">
-                  사이트 안에서 진행 상태와 주요 업데이트를 확인합니다.
+                  상담 진행 상태와 주요 안내를 확인합니다.
                 </p>
               </div>
               <button
@@ -182,6 +205,14 @@ export default function NotificationCenter() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-ink">{notification.title}</p>
                     <p className="mt-1 text-xs leading-relaxed text-ink-soft">{notification.body}</p>
+                    <p className="mt-1 text-[11px] text-ink-light">
+                      {new Date(notification.createdAt).toLocaleString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -194,7 +225,7 @@ export default function NotificationCenter() {
               onClick={() => setOpen(false)}
               className="inline-flex items-center gap-1 text-xs font-bold text-brand-700"
             >
-              알림 관련 안내 보기
+              알림 안내 보기
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </div>

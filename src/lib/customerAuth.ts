@@ -1,4 +1,8 @@
 import { clearSession, loadCollection, readSession, saveCollection, wait, writeSession } from './mockStorage'
+import {
+  getServiceRequestStatusLabel,
+  listServiceRequestsByUser,
+} from './serviceRequests'
 
 export type Nationality = 'kr' | 'cn' | 'other'
 export type ResidenceStatus = 'citizen' | 'long_term' | 'short_term' | 'tourist'
@@ -45,6 +49,13 @@ export interface MyConsultation {
   message: string
   createdAt: string
   assignedStaff?: string
+  canCancel?: boolean
+  timeline?: Array<{
+    id: string
+    at: string
+    label: string
+    description: string
+  }>
 }
 
 export interface MyReservation {
@@ -182,8 +193,22 @@ export async function getMyConsultations(): Promise<MyConsultation[]> {
   const session = getSession()
   if (!session) return []
 
+  const savedRequests = listServiceRequestsByUser(session.id).map((request) => ({
+    id: request.id,
+    serviceType: request.serviceType,
+    serviceName: request.serviceName,
+    status: request.status,
+    statusLabel: getServiceRequestStatusLabel(request.status),
+    message: request.message,
+    createdAt: request.createdAt,
+    assignedStaff: request.assignedStaff,
+    canCancel: request.status === 'new' || request.status === 'contacted',
+    timeline: request.timeline,
+  }))
+
   if (session.email === 'demo@lifful.com' || session.email === 'zhang@lifful.com') {
     return [
+      ...savedRequests,
       {
         id: 'mc-001',
         serviceType: session.nationality === 'cn' ? 'chinese_settlement' : 'internet',
@@ -210,7 +235,7 @@ export async function getMyConsultations(): Promise<MyConsultation[]> {
     ]
   }
 
-  return []
+  return savedRequests
 }
 
 export async function getMyReservations(): Promise<MyReservation[]> {
